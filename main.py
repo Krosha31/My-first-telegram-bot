@@ -2,16 +2,35 @@ from telegram.ext import Updater, MessageHandler, Filters
 from telegram.ext import CallbackContext, CommandHandler
 from telegram import ReplyKeyboardMarkup
 from telegram import ReplyKeyboardRemove
+import processing_of_users_text as process
+from random import choice
+import traceback
+
 
 
 TOKEN = '1659806911:AAE_ednsbLxGRhuFO8l00YghmBgfuXn0MQE'
 reply_keyboard = [['/adress', '/phone'],
                       ['/site', '/work_time'], ['/set 5', '...']]
 markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=False)
-
+notify_answers = ['Будет сделано', 'Постараюсь не забыть', 'Обязательно напомню, если не забуду',
+                 'Буду считать каждую секунду до этого события']
+timer_answers = ['Уже ставлю', 'Как пожелаете', 'Поставил! Теперь вы точно не пропустите что-то важное']
 
 def echo(update, context):
-
+    text = update.message.text.split()
+    dop = [i.lower() for i in text]
+    try:
+        type, other = process.processing_of_users_text(dop)
+        if type == 'n' or type == 't':
+            context.args = other[:]
+            context.args += [type]
+            set_timer(update, context)
+        if type == 's':
+            show_notifications(update, context)
+    except Exception:
+        traceback.print_exc()
+        update.message.reply_text('Я понял, что вы хотите, но, кажется, вы где-то допустили ошибку:('
+                                  '\n Чтобы вспомнить, как пишутся команды, напишите /help')
 
 
 def start(update, context):
@@ -48,10 +67,15 @@ def close_keyboard(update, context):
     )
 
 
-
 def task(context):
     job = context.job
-    context.bot.send_message(job.context[0], text=job.context[1])
+    if job.context[2] == 'n':
+        context.bot.send_message(job.context[0], text=f'Внимание! Вы просили напомнить вам {job.context[1]}')
+        for i in range(1):
+            pass
+
+    elif job.context[2] == 't':
+        context.bot.send_message(job.context[0], text=f'Тик-так тик-так {job.context[1]}')
 
 
 def set_timer(update, context):
@@ -59,26 +83,29 @@ def set_timer(update, context):
     chat_id = update.message.chat_id
     try:
         #args[0] должен содержать значение аргумента (секунды таймера)
-        due = int(context.args[0])
-        message = context.args[1]
+        due, message, type = context.args
         if due < 0:
             update.message.reply_text(
-                'Извините, не умеем возвращаться в прошлое')
+                'Извините, не умею возвращаться в прошлое')
             return
         # Добавляем задачу в очередь
         # и останавливаем предыдущую (если она была)
-        new_job = context.job_queue.run_once(task, due, context=[chat_id, message])
+        if type == 't':
+            update.message.reply_text(choice(timer_answers))
+        elif type == 'n':
+            update.message.reply_text(choice(notify_answers))
+        new_job = context.job_queue.run_once(task, due, context=[chat_id, message, type])
         # Запоминаем созданную задачу в данных чата.
-        context.chat_data['job'] = new_job
-        # Присылаем сообщение о том, что всё получилось.
-        update.message.reply_text(f'Напомню через {due} секунд')
+        if 'job' not in context.chat_data and type == 'n':
+            context.chat_data['job'] = [[new_job, message]]
+        else:
+            context.chat_data['job'].append([new_job, message])
     except (IndexError, ValueError):
         update.message.reply_text('Использование: /set <секунд>')
 
 
 
 def unset_timer(update, context):
-    # Проверяем, что задача ставилась
     if 'job' not in context.chat_data:
         update.message.reply_text('Нет активного таймера')
         return
@@ -89,6 +116,18 @@ def unset_timer(update, context):
     del context.chat_data['job']
     update.message.reply_text('Хорошо, вернулся сейчас!')
 
+
+def show_notifications(update, context):
+    if 'job' not in context.chat_data or context.chat_data['job'] == []:
+        update.message.reply_text('Мне нечего вам напоминать')
+    else:
+        k = 1
+        out = []
+        for i in context.chat_data['job']:
+            out += [f'{k}. {i[1]}']
+            k += 1
+        out = '\n'.join(out)
+        update.message.reply_text(f'Вот, что я должен вам напомнить:\n{out}')
 
 
 def main():

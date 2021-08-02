@@ -16,12 +16,15 @@ class User(base):
     __tablename__ = 'Users'
     chat_id = Column(Integer, primary_key=True)
     timezone = Column(Integer)
+    city = Column(String)
     fill = Column(BOOLEAN)
+    lat = Column(Integer)
+    lon = Column(Integer)
 
 
-class Notification(base):
-    __tablename__ = 'Notifications'
+class Notes(base):
+    __tablename__ = 'Notes'
     id = Column(Integer, primary_key=True)
     user = Column(Integer, nullable=False)
-    time = Column(DateTime, nullable=False)
+    name = Column(String)
     text = Column(String)

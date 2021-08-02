@@ -7,7 +7,6 @@ numbers = {'один': 1, 'два': 2, 'три': 3, 'четыре': 4, 'пять
            'пятьдесят': 50, 'полдень': 12, 'полночь': 0, 'час': 1, '': 1, '': 1, '': 1}
 
 
-
 def processing_of_users_text(text):
     morph = pymorphy2.MorphAnalyzer()
     if 'напомни' in text or 'таймер' in text:
@@ -29,7 +28,11 @@ def processing_of_users_text(text):
                 if text[i] == 'час' and dop not in numbers and not (set(dop) & set('0123456789')):
                     time['h'] += 1
                 elif dop in numbers:
-                    time['h'] += numbers[dop]
+                    dop2 = morph.parse(text[i - 2])[0].normal_form
+                    if dop2 in numbers:
+                        time['h'] += numbers[dop] + numbers[dop2]
+                    else:
+                        time['h'] += numbers[dop]
                 else:
                     time['h'] += int(dop)
             elif 'минут' in text[i]:
@@ -37,24 +40,34 @@ def processing_of_users_text(text):
                 if text[i] == 'минуту' and dop not in numbers and not (set(dop) & set('0123456789')):
                     time['m'] += 1
                 elif dop in numbers:
-                    time['m'] += numbers[dop]
+                    dop2 = morph.parse(text[i - 2])[0].normal_form
+                    if dop2 in numbers:
+                        time['m'] += numbers[dop] + numbers[dop2]
+                    else:
+                        time['m'] += numbers[dop]
                 else:
                     time['m'] += int(dop)
             elif 'секунд' in text[i]:
-                print(text[i-1])
                 dop = morph.parse(text[i - 1])[0].normal_form
                 if text[i] == 'секунду' and dop not in numbers and not (set(dop) & set('0123456789')):
                     time['s'] += 1
                 elif dop in numbers:
-                    time['s'] += numbers[dop]
+                    dop2 = morph.parse(text[i - 2])[0].normal_form
+                    if dop2 in numbers:
+                        time['s'] += numbers[dop] + numbers[dop2]
+                    else:
+                        time['s'] += numbers[dop]
                 else:
                     time['s'] += int(dop)
         request = ' '.join(text[i+1:])
         return type, [time, request]
     elif 'покажи' in text and 'напоминания' in text or 'показать' in text and 'напоминания' in text:
         return 's', []
-    elif 'удали' in text and ('напоминания' in text or 'напоминание' in text) or 'удалить' in text and ('напоминания' in text or 'напоминание' in text):
+    elif 'удали' in text and ('напоминания' in text or 'напоминание' in text) or 'удалить' in text and\
+            ('напоминания' in text or 'напоминание' in text) or '/delete_notifications' in text:
         return 'd', []
+    elif 'погода' in text or 'погоду' in text:
+        return 'w', []
 
 
 

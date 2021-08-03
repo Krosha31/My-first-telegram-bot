@@ -76,7 +76,7 @@ def start(update, context):
         update.message.reply_text("Для того, чтобы напоминания и погода работали корректно, мне нужно знать твой часовой пояс. "
                               "Напиши, пожалуйста, название своего города, чтобы я мог найти его")
         context.chat_data['timezone'] = 'add'
-    return 1
+        return 1
 
 
 def change_timezone(update, context):
@@ -89,7 +89,6 @@ def add_timezone(update, context):
     try:
         url = 'https://geocode-maps.yandex.ru/1.x'
         city = requests.get(url=url, params={'apikey': GEO_KEY, 'geocode': update.message.text, 'format': 'json'}).json()
-        pprint(city)
         name_city = city["response"]['GeoObjectCollection']['featureMember'][0]["GeoObject"]['metaDataProperty'][
             'GeocoderMetaData']['Address']['formatted'].split(', ')[1]
         coors = city["response"]['GeoObjectCollection']['featureMember'][0]["GeoObject"]['Point']['pos'].split()
@@ -128,7 +127,7 @@ def add_timezone(update, context):
 
 
 def stop(update, context):
-    pass
+    return ConversationHandler.END
 
 
 def weather(update, context):
@@ -151,7 +150,8 @@ def weather(update, context):
             new_city[i] = new_city[i].capitalize()
         new_city = '-'.join(new_city)
     update.message.reply_text(f'Сейчас в {new_city} {weather["fact"]["temp"]}°(ощущается как'
-                              f' {weather["fact"]["feels_like"]}°), {condition[weather["fact"]["condition"]]}')
+                              f' {weather["fact"]["feels_like"]}°), {condition[weather["fact"]["condition"]]}\n\nПодробнее: '
+                              f'{weather["info"]["url"]}')
 
 
 
